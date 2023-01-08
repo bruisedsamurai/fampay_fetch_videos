@@ -11,6 +11,15 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 import os
 
+from dotenv import load_dotenv
+
+load_dotenv()  # take environment variables from .env.
+import json
+
+f = open("env.json", "r")
+env = json.load(f)
+
+
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -21,12 +30,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "local-env")
+SECRET_KEY = env.get("DJANGO_SECRET_KEY", "local-env")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get("DEBUG", True)
+DEBUG = env.get("DEBUG", True)
 
-ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOSTS", [])
+ALLOWED_HOSTS = env.get("DJANGO_ALLOWED_HOSTS", [])
 
 
 # Application definition
@@ -40,12 +49,14 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django_celery_beat",
     "fetch_videos.apps.FetchVidoesConfig",
+    "celery_job.apps.CeleryJobConfig",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -76,12 +87,12 @@ WSGI_APPLICATION = "fetch_videos.wsgi.application"
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 DATABASES = {
     "default": {
-        "ENGINE": os.environ.get("SQL_ENGINE", "django.db.backends.sqlite3"),
-        "NAME": os.environ.get("SQL_DATABASE", os.path.join(BASE_DIR, "db.sqlite3")),
-        "USER": os.environ.get("SQL_USER", "user"),
-        "PASSWORD": os.environ.get("SQL_PASSWORD", "password"),
-        "HOST": os.environ.get("SQL_HOST", "localhost"),
-        "PORT": os.environ.get("SQL_PORT", "5432"),
+        "ENGINE": env.get("SQL_ENGINE", "django.db.backends.sqlite3"),
+        "NAME": env.get("SQL_DATABASE", os.path.join(BASE_DIR, "db.sqlite3")),
+        "USER": env.get("SQL_USER", "user"),
+        "PASSWORD": env.get("SQL_PASSWORD", "password"),
+        "HOST": env.get("SQL_HOST", "localhost"),
+        "PORT": env.get("SQL_PORT", "5432"),
     }
 }
 
@@ -118,8 +129,28 @@ USE_L10N = True
 
 USE_TZ = True
 
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = "/static/"
+
+CELERY_BROKER_URL = "redis://localhost:6379"
+CELERY_RESULT_BACKEND = "redis://localhost:6379"
+# celery_accept_content = ["application/json"]
+# celery_task_serializer = "json"
+# celery_result_serializer = "json"
+
+CELERY_BEAT_SCHEDULE = {}
+
+YOUTUBE_KEYS = env.get("YOUTUBE_KEY")
+
+CELERY_BEAT_SCHEDULE = {
+    "add-youtube-vide-every-10-seconds": {
+        "task": "celery_job.tasks.task_add_videos",
+        "schedule": 10.0,
+        "args": (env.get("YOUTUBE_KEY"),),
+    },
+}
