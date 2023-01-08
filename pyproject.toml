@@ -9,8 +9,15 @@ packages = [{include = "fetch_videos"}]
 [tool.poetry.dependencies]
 python = "^3.11"
 django = "4.1.5"
+django-celery-beat = "^2.1.0"
+gunicorn = "^20.1.0"
+celery = "^5.2.7"
+redis = "^4.4.0"
+google-api-python-client = "^2.71.0"
 psycopg2 = "^2.9.5"
 requests = "^2.28.1"
+python-dotenv = "^0.21.0"
+flower = "^1.2.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^22.12.0"
